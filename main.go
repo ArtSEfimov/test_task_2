@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-const PORT = ":8080" // TODO relocate it to .env
+const Port = ":8080" // TODO relocate it to .env
 
 func main() {
 
@@ -19,7 +19,7 @@ func main() {
 
 	// create new server
 	peopleServer := http.Server{
-		Addr:    PORT,
+		Addr:    Port,
 		Handler: peopleMux,
 	}
 
@@ -31,7 +31,7 @@ func main() {
 	// TODO create new Repo
 	// TODO create DB
 
-	conf.InfoLogger.Printf("Starting server on port %s...", PORT)
+	conf.InfoLogger.Printf("Starting server on port %s...", Port)
 	serverStartErr := peopleServer.ListenAndServe()
 	if serverStartErr != nil {
 		log.Fatal(serverStartErr)

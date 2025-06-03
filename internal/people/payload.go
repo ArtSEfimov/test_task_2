@@ -16,3 +16,18 @@ type AgeRequest struct {
 type GenderRequest struct {
 	Gender string `json:"gender"`
 }
+
+type Country struct {
+	CountryID   string  `json:"country_id"`
+	Probability float64 `json:"probability"`
+}
+type NationalityRequest struct {
+	Countries []Country `json:"countries"`
+}
+
+type DetailInfo struct {
+	Common string `json:"common"`
+}
+type CountryInfo struct {
+	Name DetailInfo `json:"name"`
+}

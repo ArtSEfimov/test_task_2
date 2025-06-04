@@ -52,7 +52,7 @@ func (handler *Handler) Create() http.HandlerFunc {
 
 		enrichPerson(&person)
 
-		// TODO save to DB
+		// TODO save to Database
 		createdPerson := ""
 
 		response.Json(w, createdPerson, http.StatusCreated)
@@ -70,7 +70,7 @@ func (handler *Handler) Update() http.HandlerFunc {
 
 		// TODO GET person by ID
 		var person Person
-		// TODO parse DB response
+		// TODO parse Database response
 
 		var request Request
 		bodyReader := bufio.NewReader(r.Body)

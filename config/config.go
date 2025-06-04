@@ -5,9 +5,21 @@ import (
 	"os"
 )
 
+type DB struct {
+	Driver   string
+	User     string
+	Password string
+	Host     string
+	Port     string
+	Name     string
+	SSL      string
+}
+
 type Config struct {
+	Port        string
 	InfoLogger  *log.Logger
 	DebugLogger *log.Logger
+	Database    DB
 }
 
 func NewConfig() *Config {

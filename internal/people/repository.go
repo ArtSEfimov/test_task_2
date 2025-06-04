@@ -1,15 +1,15 @@
 package people
 
-import "go_test_task_2/config"
+import (
+	"go_test_task_2/pkg/db"
+)
 
 type Repository struct {
+	Database *db.DB
 }
 
-type RepositoryDeps struct {
-	Config *config.Config
-	DB     string
-}
-
-func NewRepository(config *config.Config) *Repository {
-	return &Repository{}
+func NewRepository(database *db.DB) *Repository {
+	return &Repository{
+		Database: database,
+	}
 }

@@ -3,23 +3,24 @@ package main
 import (
 	"fmt"
 	"go_test_task_2/config"
+	"go_test_task_2/internal/people"
+	"go_test_task_2/pkg/db"
 	"log"
 	"net/http"
 )
-
-const Port = ":8080" // TODO relocate it to .env
 
 func main() {
 
 	// load config
 	conf := config.NewConfig()
+	port := conf.Port
 
 	// init mux
 	peopleMux := http.NewServeMux()
 
 	// create new server
 	peopleServer := http.Server{
-		Addr:    Port,
+		Addr:    port,
 		Handler: peopleMux,
 	}
 
@@ -28,10 +29,11 @@ func main() {
 	n, _ := r.Body.Read(bytes)
 	fmt.Println(string(bytes[:n]))
 
-	// TODO create new Repo
-	// TODO create DB
+	peopleDB := db.NewDB(conf)
+	peopleRepository := people.NewRepository(peopleDB)
+	fmt.Println(peopleRepository) // TODO to handler
 
-	conf.InfoLogger.Printf("Starting server on port %s...", Port)
+	conf.InfoLogger.Printf("Starting server on port %s...", port)
 	serverStartErr := peopleServer.ListenAndServe()
 	if serverStartErr != nil {
 		log.Fatal(serverStartErr)

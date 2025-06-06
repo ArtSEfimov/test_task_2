@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: people
+      POSTGRES_USER: people_user
+      POSTGRES_PASSWORD: people_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - people_db_data:/var/lib/postgresql/data

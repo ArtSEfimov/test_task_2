@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:17
@@ -11,3 +9,6 @@ services:
       - "5432:5432"
     volumes:
       - people_db_data:/var/lib/postgresql/data
+
+volumes:
+  people_db_data:

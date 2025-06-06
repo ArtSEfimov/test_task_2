@@ -10,8 +10,8 @@ import (
 )
 
 func main() {
-	err := godotenv.Load("../../../.env")
-	if err != nil {
+	envLoadErr := godotenv.Load("../../../.env")
+	if envLoadErr != nil {
 		log.Fatal("Error loading .env file")
 	}
 
@@ -27,11 +27,15 @@ func main() {
 		user, password, host, port, dbname, ssl,
 	)
 
-	db, err := sql.Open("postgres", dsn)
-	if err != nil {
-		log.Fatal("Ошибка подключения к БД:", err)
+	db, openErr := sql.Open("postgres", dsn)
+	if openErr != nil {
+		log.Fatal("DB connection error", openErr)
 	}
-	defer db.Close()
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			log.Fatal(closeErr)
+		}
+	}()
 
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS people (
@@ -39,21 +43,21 @@ func main() {
             name TEXT NOT NULL,
             surname TEXT NOT NULL,
             patronymic TEXT,
-            age INTEGER NOT NULL,
+            age INTEGER NOT NULL CHECK (age >= 0),
             gender TEXT NOT NULL,
             nationality TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT NOW(),
-            updated_at TIMESTAMP DEFAULT NOW()
+            updated_at TIMESTAMP DEFAULT NOW() 
         )`,
 	}
 
 	for _, q := range queries {
-		fmt.Println("Выполняется:", q)
+		fmt.Println("in progress...:\n", q)
 		_, err := db.Exec(q)
 		if err != nil {
-			log.Fatal("Ошибка при выполнении миграции:", err)
+			log.Fatal("migration error", err)
 		}
 	}
 
-	fmt.Println("Все миграции применены.")
+	fmt.Println("All migrations have been applied.")
 }

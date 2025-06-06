@@ -9,8 +9,8 @@ type DB struct {
 }
 type Person struct {
 	DB
-	Name        string `json:"name"`
-	Surname     string `json:"surname"`
+	Name        string `json:"name" validate:"required"`
+	Surname     string `json:"surname" validate:"required"`
 	Patronymic  string `json:"patronymic"`
 	Age         uint8  `json:"age"`
 	Gender      string `json:"gender"`

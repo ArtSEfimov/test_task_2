@@ -3,34 +3,89 @@ package people
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"go_test_task_2/config"
 	"go_test_task_2/pkg/response"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type HandlerDeps struct {
 	Config     *config.Config
 	Repository *Repository
 }
-type Handler struct {
+
+func NewHandlerDeps(conf *config.Config, repository *Repository) *HandlerDeps {
+	return &HandlerDeps{
+		Config:     conf,
+		Repository: repository,
+	}
 }
 
-func NewHandler(router *http.ServeMux) {
-	handler := &Handler{}
+type Handler struct {
+	config     *config.Config
+	repository *Repository
+}
+
+func NewHandler(router *http.ServeMux, deps *HandlerDeps) {
+	handler := &Handler{
+		config:     deps.Config,
+		repository: deps.Repository,
+	}
+
 	router.HandleFunc("GET /people", handler.GetAll())
-	router.HandleFunc("GET /people/{id}", handler.Get())
+	router.HandleFunc("GET /people/{id}", handler.GetByID())
 	router.HandleFunc("POST /people", handler.Create())
 	router.HandleFunc("PUT  /people/{id}", handler.Update())
 }
 
 func (handler *Handler) GetAll() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		pageParam := parseQuery(r, "page")
+		sizeParam := parseQuery(r, "limit")
+
+		var page, limit uint64
+
+		parseUint, err := strconv.ParseUint(pageParam, 10, 64)
+		if err != nil && pageParam != "" {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		page = parseUint
+
+		parseUint, err = strconv.ParseUint(sizeParam, 10, 64)
+		if err != nil && sizeParam != "" {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		limit = parseUint
+
+		offset := (page - 1) * limit
+
+		var params string
+		if offset != 0 {
+			params = fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
+		}
+
+		dbName := fmt.Sprintf(" %s", handler.config.Database.Name)
+		query := fmt.Sprintf("SELECT * FROM%s\nORDER BY id%s", dbName, params)
+
+		var people AllPeopleResponse
+
+		getErr := handler.repository.GetAll(query, &people)
+
+		if getErr != nil {
+			http.Error(w, getErr.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		response.Json(w, &people, http.StatusOK)
 
 	}
 }
 
-func (handler *Handler) Get() http.HandlerFunc {
+func (handler *Handler) GetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 	}
@@ -44,6 +99,11 @@ func (handler *Handler) Create() http.HandlerFunc {
 		decodeErr := json.NewDecoder(bodyReader).Decode(&request)
 		if decodeErr != nil {
 			http.Error(w, decodeErr.Error(), http.StatusBadRequest)
+		}
+		errorMessages := IsValid(&request)
+		if errorMessages != nil {
+			http.Error(w, fmt.Sprintf("Validation failed: %s", strings.Join(errorMessages, ", ")), http.StatusBadRequest)
+			return
 		}
 
 		person.Name = request.Name

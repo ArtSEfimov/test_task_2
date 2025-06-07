@@ -40,40 +40,84 @@ func NewHandler(router *http.ServeMux, deps *HandlerDeps) {
 	router.HandleFunc("PUT  /people/{id}", handler.Update())
 }
 
+func (handler *Handler) listLimit(w http.ResponseWriter, sizeParam string) {
+
+	parseUint, err := strconv.ParseUint(sizeParam, 10, 64)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	limit := parseUint
+
+	params := "LIMIT $1"
+	dbName := fmt.Sprintf(" %s", handler.config.Database.Name)
+	query := fmt.Sprintf("SELECT * FROM%s\nORDER BY id\n%s", dbName, params)
+
+	var people AllPeopleResponse
+	getErr := handler.repository.Get(query, &people, limit)
+
+	if getErr != nil {
+		http.Error(w, getErr.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response.Json(w, &people, http.StatusOK)
+
+}
+
+func (handler *Handler) listLimitOffset(w http.ResponseWriter, sizeParam, pageParam string) {
+
+	parseUint, err := strconv.ParseUint(pageParam, 10, 64)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	page := parseUint
+
+	parseUint, err = strconv.ParseUint(sizeParam, 10, 64)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	limit := parseUint
+
+	offset := (page - 1) * limit
+
+	params := "LIMIT $1 OFFSET $2"
+	dbName := fmt.Sprintf(" %s", handler.config.Database.Name)
+	query := fmt.Sprintf("SELECT * FROM%s\nORDER BY id\n%s", dbName, params)
+
+	var people AllPeopleResponse
+	getErr := handler.repository.Get(query, &people, limit, offset)
+
+	if getErr != nil {
+		http.Error(w, getErr.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response.Json(w, &people, http.StatusOK)
+
+}
+
 func (handler *Handler) GetAll() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		pageParam := parseQuery(r, "page")
 		sizeParam := parseQuery(r, "limit")
-
-		var page, limit uint64
-
-		parseUint, err := strconv.ParseUint(pageParam, 10, 64)
-		if err != nil && pageParam != "" {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		if pageParam != "" && sizeParam != "" {
+			handler.listLimitOffset(w, sizeParam, pageParam)
 			return
 		}
-		page = parseUint
 
-		parseUint, err = strconv.ParseUint(sizeParam, 10, 64)
-		if err != nil && sizeParam != "" {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		if sizeParam != "" {
+			handler.listLimit(w, sizeParam)
 			return
-		}
-		limit = parseUint
-
-		offset := (page - 1) * limit
-
-		var params string
-		if offset != 0 {
-			params = fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
 		}
 
 		dbName := fmt.Sprintf(" %s", handler.config.Database.Name)
-		query := fmt.Sprintf("SELECT * FROM%s\nORDER BY id%s", dbName, params)
+		query := fmt.Sprintf("SELECT * FROM%s\nORDER BY id", dbName)
 
 		var people AllPeopleResponse
-
-		getErr := handler.repository.GetAll(query, &people)
+		getErr := handler.repository.Get(query, &people)
 
 		if getErr != nil {
 			http.Error(w, getErr.Error(), http.StatusInternalServerError)
@@ -87,6 +131,25 @@ func (handler *Handler) GetAll() http.HandlerFunc {
 
 func (handler *Handler) GetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		idString := r.PathValue("id")
+		id, parseErr := strconv.ParseUint(idString, 10, 64)
+		if parseErr != nil {
+			http.Error(w, parseErr.Error(), http.StatusBadRequest)
+		}
+
+		params := "WHERE id = $1"
+		dbName := fmt.Sprintf(" %s", handler.config.Database.Name)
+		query := fmt.Sprintf("SELECT * FROM%s\n%s", dbName, params)
+
+		var person Person
+		getErr := handler.repository.GetByID(query, &person, id)
+
+		if getErr != nil {
+			http.Error(w, getErr.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		response.Json(w, &person, http.StatusOK)
 
 	}
 }
@@ -95,6 +158,7 @@ func (handler *Handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var person Person
 		var request Request
+
 		bodyReader := bufio.NewReader(r.Body)
 		decodeErr := json.NewDecoder(bodyReader).Decode(&request)
 		if decodeErr != nil {
@@ -112,32 +176,62 @@ func (handler *Handler) Create() http.HandlerFunc {
 
 		enrichPerson(&person)
 
-		// TODO save to Database
-		createdPerson := ""
+		params := "VALUES ($1 $2 $3 $4 $5 $6)"
+		returning := "RETURNING id, created_at, updated_at"
+		dbName := fmt.Sprintf(" %s", handler.config.Database.Name)
+		query := fmt.Sprintf("INSERT INTO%s %s %s", dbName, params, returning)
 
-		response.Json(w, createdPerson, http.StatusCreated)
+		getErr := handler.repository.Create(query, &person)
+		if getErr != nil {
+			http.Error(w, getErr.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		response.Json(w, &person, http.StatusCreated)
 
 	}
 }
 
 func (handler *Handler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var person Person
+		var request Request
+
 		stringID := r.URL.Query().Get("id")
 		id, parseErr := strconv.ParseUint(stringID, 10, 64)
 		if parseErr != nil {
 			http.Error(w, parseErr.Error(), http.StatusBadRequest)
 		}
 
-		// TODO GET person by ID
-		var person Person
-		// TODO parse Database response
-
-		var request Request
 		bodyReader := bufio.NewReader(r.Body)
 		decodeErr := json.NewDecoder(bodyReader).Decode(&request)
 		if decodeErr != nil {
 			http.Error(w, decodeErr.Error(), http.StatusBadRequest)
 		}
+		errorMessages := IsValid(&request)
+		if errorMessages != nil {
+			http.Error(w, fmt.Sprintf("Validation failed: %s", strings.Join(errorMessages, ", ")), http.StatusBadRequest)
+			return
+		}
 
+		person.Name = request.Name
+		person.Surname = request.Surname
+		person.Patronymic = request.Patronymic
+
+		enrichPerson(&person)
+
+		params := "SET name = $1, surname = $2, patronymic = $3, age = $4, gender = $5, nationality = $6)"
+		selectByID := "WHERE id = $7"
+		returning := "RETURNING updated_at"
+		dbName := fmt.Sprintf(" %s", handler.config.Database.Name)
+		query := fmt.Sprintf("UPDATE%s\n%s\n%s\n%s", dbName, params, selectByID, returning)
+
+		getErr := handler.repository.Update(query, &person, id)
+		if getErr != nil {
+			http.Error(w, getErr.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		response.Json(w, &person, http.StatusCreated)
 	}
 }

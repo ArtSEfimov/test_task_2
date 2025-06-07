@@ -78,4 +78,3 @@ func getFullCountryName(name string) string {
 
 	return countriesInfo[0].Name.Common
 }
-func validateData()

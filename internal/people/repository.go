@@ -15,8 +15,8 @@ func NewRepository(database *db.DB) *Repository {
 	}
 }
 
-func (repository *Repository) GetAll(query string, people *AllPeopleResponse) error {
-	rows, queryErr := repository.Database.DB.Query(query)
+func (repository *Repository) Get(query string, people *AllPeopleResponse, params ...any) error {
+	rows, queryErr := repository.Database.DB.Query(query, params...)
 	if queryErr != nil {
 		return queryErr
 	}
@@ -28,7 +28,8 @@ func (repository *Repository) GetAll(query string, people *AllPeopleResponse) er
 
 	for rows.Next() {
 		var person Person
-		scanErr := rows.Scan(&person.ID,
+		scanErr := rows.Scan(
+			&person.ID,
 			&person.CreatedAt,
 			&person.UpdatedAt,
 			&person.Name,
@@ -52,5 +53,76 @@ func (repository *Repository) GetAll(query string, people *AllPeopleResponse) er
 		return rowsErr
 	}
 
+	return nil
+}
+
+func (repository *Repository) GetByID(query string, person *Person, params ...any) error {
+	row, queryErr := repository.Database.DB.Query(query, params...)
+	if queryErr != nil {
+		return queryErr
+	}
+	defer func() {
+		if closeErr := row.Close(); closeErr != nil {
+			panic(closeErr)
+		}
+	}()
+
+	scanErr := row.Scan(
+		&person.ID,
+		&person.CreatedAt,
+		&person.UpdatedAt,
+		&person.Name,
+		&person.Surname,
+		&person.Patronymic,
+		&person.Age,
+		&person.Gender,
+		&person.Nationality,
+	)
+
+	if scanErr != nil {
+		log.Fatal("Ошибка при сканировании строки: ", scanErr)
+		return scanErr
+	}
+
+	if rowsErr := row.Err(); rowsErr != nil {
+		log.Fatal("Ошибка при обработке строк: ", rowsErr)
+		return rowsErr
+	}
+
+	return nil
+}
+
+func (repository *Repository) Create(query string, person *Person) error {
+	queryErr := repository.Database.DB.QueryRow(
+		query,
+		person.Name,
+		person.Surname,
+		person.Patronymic,
+		person.Age,
+		person.Gender,
+		person.Nationality,
+	).Scan(&person.ID, &person.CreatedAt, &person.UpdatedAt)
+
+	if queryErr != nil {
+		return queryErr
+	}
+	return nil
+}
+
+func (repository *Repository) Update(query string, person *Person, id uint64) error {
+	queryErr := repository.Database.DB.QueryRow(
+		query,
+		person.Name,
+		person.Surname,
+		person.Patronymic,
+		person.Age,
+		person.Gender,
+		person.Nationality,
+		id,
+	).Scan(&person.UpdatedAt)
+
+	if queryErr != nil {
+		return queryErr
+	}
 	return nil
 }

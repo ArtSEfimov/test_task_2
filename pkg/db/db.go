@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	_ "github.com/lib/pq"
 	"go_test_task_2/config"
 )
 

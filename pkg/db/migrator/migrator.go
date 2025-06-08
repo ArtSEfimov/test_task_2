@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	envLoadErr := godotenv.Load("../../../.env")
+	envLoadErr := godotenv.Load("../../.env")
 	if envLoadErr != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -21,13 +21,14 @@ func main() {
 	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")
 	ssl := os.Getenv("DB_SSL")
+	driver := os.Getenv("DB_DRIVER")
 
 	dsn := fmt.Sprintf(
 		"user=%s password=%s host=%s port=%s dbname=%s sslmode=%s",
 		user, password, host, port, dbname, ssl,
 	)
 
-	db, openErr := sql.Open("postgres", dsn)
+	db, openErr := sql.Open(driver, dsn)
 	if openErr != nil {
 		log.Fatal("DB connection error", openErr)
 	}

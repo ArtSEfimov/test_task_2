@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"go_test_task_2/config"
 	"go_test_task_2/internal/people"
 	"go_test_task_2/pkg/db"
@@ -19,7 +20,7 @@ func main() {
 
 	// create new server
 	peopleServer := http.Server{
-		Addr:    port,
+		Addr:    fmt.Sprintf(":%s", port),
 		Handler: peopleMux,
 	}
 

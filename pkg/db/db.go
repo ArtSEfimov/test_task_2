@@ -19,5 +19,9 @@ func NewDB(config *config.Config) *DB {
 	if openErr != nil {
 		panic(openErr)
 	}
+
+	if pingErr := db.Ping(); pingErr != nil {
+		panic(fmt.Errorf("failed to ping DB: %w", pingErr))
+	}
 	return &DB{db}
 }

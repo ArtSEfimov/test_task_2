@@ -17,15 +17,15 @@ func main() {
 
 	user := os.Getenv("DB_USER")
 	password := os.Getenv("DB_PASSWORD")
-	dbname := os.Getenv("DB_NAME")
+	dbName := os.Getenv("DB_NAME")
 	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")
 	ssl := os.Getenv("DB_SSL")
 	driver := os.Getenv("DB_DRIVER")
 
 	dsn := fmt.Sprintf(
-		"user=%s password=%s host=%s port=%s dbname=%s sslmode=%s",
-		user, password, host, port, dbname, ssl,
+		"user=%s password=%s host=%s port=%s dbName=%s sslmode=%s",
+		user, password, host, port, dbName, ssl,
 	)
 
 	db, openErr := sql.Open(driver, dsn)
@@ -39,17 +39,18 @@ func main() {
 	}()
 
 	queries := []string{
-		`CREATE TABLE IF NOT EXISTS people (
+		fmt.Sprintf(`DROP TABLE IF EXISTS %s`, dbName),
+		fmt.Sprintf(`CREATE TABLE %s (
             id SERIAL PRIMARY KEY,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW(),
             name TEXT NOT NULL,
             surname TEXT NOT NULL,
             patronymic TEXT,
             age INTEGER NOT NULL CHECK (age >= 0),
             gender TEXT NOT NULL,
-            nationality TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT NOW(),
-            updated_at TIMESTAMP DEFAULT NOW() 
-        )`,
+            nationality TEXT NOT NULL
+        )`, dbName),
 	}
 
 	for _, q := range queries {

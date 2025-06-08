@@ -199,8 +199,8 @@ func (handler *Handler) Update() http.HandlerFunc {
 		var person Person
 		var request Request
 
-		stringID := r.URL.Query().Get("id")
-		id, parseErr := strconv.ParseUint(stringID, 10, 64)
+		idString := r.PathValue("id")
+		id, parseErr := strconv.ParseUint(idString, 10, 64)
 		if parseErr != nil {
 			http.Error(w, parseErr.Error(), http.StatusBadRequest)
 		}
@@ -223,7 +223,7 @@ func (handler *Handler) Update() http.HandlerFunc {
 		promise := enrichPerson(&person)
 		<-promise
 
-		params := "SET name = $1, surname = $2, patronymic = $3, age = $4, gender = $5, nationality = $6)"
+		params := "SET name = $1, surname = $2, patronymic = $3, age = $4, gender = $5, nationality = $6"
 		selectByID := "WHERE id = $7"
 		returning := "RETURNING updated_at"
 		dbName := fmt.Sprintf(" %s", handler.config.Database.Name)

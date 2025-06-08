@@ -9,6 +9,8 @@ import (
 	"os"
 )
 
+const table = "people"
+
 func main() {
 	envLoadErr := godotenv.Load("../../.env")
 	if envLoadErr != nil {
@@ -24,7 +26,7 @@ func main() {
 	driver := os.Getenv("DB_DRIVER")
 
 	dsn := fmt.Sprintf(
-		"user=%s password=%s host=%s port=%s dbName=%s sslmode=%s",
+		"user=%s password=%s host=%s port=%s dbname=%s sslmode=%s",
 		user, password, host, port, dbName, ssl,
 	)
 
@@ -39,7 +41,7 @@ func main() {
 	}()
 
 	queries := []string{
-		fmt.Sprintf(`DROP TABLE IF EXISTS %s`, dbName),
+		fmt.Sprintf(`DROP TABLE IF EXISTS %s`, table),
 		fmt.Sprintf(`CREATE TABLE %s (
             id SERIAL PRIMARY KEY,
             created_at TIMESTAMP DEFAULT NOW(),
@@ -50,7 +52,7 @@ func main() {
             age INTEGER NOT NULL CHECK (age >= 0),
             gender TEXT NOT NULL,
             nationality TEXT NOT NULL
-        )`, dbName),
+        )`, table),
 	}
 
 	for _, q := range queries {

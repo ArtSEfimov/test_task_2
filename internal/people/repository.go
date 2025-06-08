@@ -56,16 +56,8 @@ func (repository *Repository) Get(query string, people *AllPeopleResponse, param
 	return nil
 }
 
-func (repository *Repository) GetByID(query string, person *Person, params ...any) error {
-	row, queryErr := repository.Database.DB.Query(query, params...)
-	if queryErr != nil {
-		return queryErr
-	}
-	defer func() {
-		if closeErr := row.Close(); closeErr != nil {
-			panic(closeErr)
-		}
-	}()
+func (repository *Repository) GetByID(query string, person *Person, id uint64) error {
+	row := repository.Database.DB.QueryRow(query, id)
 
 	scanErr := row.Scan(
 		&person.ID,
@@ -80,7 +72,7 @@ func (repository *Repository) GetByID(query string, person *Person, params ...an
 	)
 
 	if scanErr != nil {
-		log.Fatal("Ошибка при сканировании строки: ", scanErr)
+		log.Fatalf("объект с ID %d не обнаружен, %v", id, scanErr)
 		return scanErr
 	}
 

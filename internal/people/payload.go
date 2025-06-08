@@ -22,7 +22,7 @@ type Country struct {
 	Probability float64 `json:"probability"`
 }
 type NationalityRequest struct {
-	Countries []Country `json:"countries"`
+	Countries []Country `json:"country"`
 }
 
 type DetailInfo struct {

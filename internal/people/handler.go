@@ -177,10 +177,10 @@ func (handler *Handler) Create() http.HandlerFunc {
 
 		enrichPerson(&person)
 
-		params := "VALUES ($1 $2 $3 $4 $5 $6)"
+		params := "VALUES ($1, $2, $3, $4, $5, $6)"
 		returning := "RETURNING id, created_at, updated_at"
 		dbName := fmt.Sprintf(" %s", handler.config.Database.Name)
-		query := fmt.Sprintf("INSERT INTO%s %s %s", dbName, params, returning)
+		query := fmt.Sprintf("INSERT INTO%s (name, surname, patronymic, age, gender, nationality) %s %s", dbName, params, returning)
 
 		dbErr := handler.repository.Create(query, &person)
 		if dbErr != nil {

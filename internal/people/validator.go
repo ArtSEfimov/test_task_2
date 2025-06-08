@@ -7,7 +7,7 @@ import (
 
 func IsValid(payload *Request) (errors []string) {
 	peopleValidator := validator.New()
-	validateErr := peopleValidator.Struct(&payload)
+	validateErr := peopleValidator.Struct(payload)
 
 	if validateErr != nil {
 		for _, e := range validateErr.(validator.ValidationErrors) {

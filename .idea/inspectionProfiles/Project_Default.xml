@@ -5,6 +5,9 @@
       <functions>
         <function importPath="net/http" name="Get" />
       </functions>
+      <methods>
+        <method importPath="database/sql" receiver="*DB" name="Exec" />
+      </methods>
     </inspection_tool>
   </profile>
 </component>

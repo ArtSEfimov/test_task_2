@@ -1,8 +1,10 @@
 package people
 
 import (
+	"database/sql"
+	"errors"
+	"fmt"
 	"go_test_task_2/pkg/db"
-	"log"
 )
 
 type Repository struct {
@@ -41,7 +43,6 @@ func (repository *Repository) Get(query string, people *AllPeopleResponse, param
 		)
 
 		if scanErr != nil {
-			log.Fatal("Ошибка при сканировании строки: ", scanErr)
 			return scanErr
 		}
 
@@ -49,7 +50,6 @@ func (repository *Repository) Get(query string, people *AllPeopleResponse, param
 	}
 
 	if rowsErr := rows.Err(); rowsErr != nil {
-		log.Fatal("Ошибка при обработке строк: ", rowsErr)
 		return rowsErr
 	}
 
@@ -72,10 +72,11 @@ func (repository *Repository) GetByID(query string, person *Person, id uint64) e
 	)
 
 	if scanErr != nil {
-		log.Printf("объект с ID %d не обнаружен, %v", id, scanErr)
+		if errors.Is(scanErr, sql.ErrNoRows) {
+			return fmt.Errorf("record with id %d not found", id)
+		}
 		return scanErr
 	}
-
 	return nil
 }
 
@@ -109,15 +110,21 @@ func (repository *Repository) Update(query string, person *Person, id uint64) er
 	).Scan(&person.ID, &person.CreatedAt, &person.UpdatedAt)
 
 	if queryErr != nil {
+		if errors.Is(queryErr, sql.ErrNoRows) {
+			return fmt.Errorf("record with id %d not found", id)
+		}
 		return queryErr
 	}
 	return nil
 }
+
 func (repository *Repository) Delete(query string, id uint64) error {
-	_, queryErr := repository.Database.DB.Exec(query, id)
+	result, queryErr := repository.Database.DB.Exec(query, id)
+	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+		return fmt.Errorf("record with id %d not found", id)
+	}
 
 	if queryErr != nil {
-		log.Println("delete error: ", queryErr)
 		return queryErr
 	}
 	return nil

@@ -225,7 +225,7 @@ func (handler *Handler) Update() http.HandlerFunc {
 
 		params := "SET name = $1, surname = $2, patronymic = $3, age = $4, gender = $5, nationality = $6"
 		selectByID := "WHERE id = $7"
-		returning := "RETURNING updated_at"
+		returning := "RETURNING id, created_at, updated_at"
 		dbName := fmt.Sprintf(" %s", handler.config.Database.Name)
 		query := fmt.Sprintf("UPDATE%s\n%s\n%s\n%s", dbName, params, selectByID, returning)
 

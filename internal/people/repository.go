@@ -72,13 +72,8 @@ func (repository *Repository) GetByID(query string, person *Person, id uint64) e
 	)
 
 	if scanErr != nil {
-		log.Fatalf("объект с ID %d не обнаружен, %v", id, scanErr)
+		log.Printf("объект с ID %d не обнаружен, %v", id, scanErr)
 		return scanErr
-	}
-
-	if rowsErr := row.Err(); rowsErr != nil {
-		log.Fatal("Ошибка при обработке строк: ", rowsErr)
-		return rowsErr
 	}
 
 	return nil
@@ -111,7 +106,7 @@ func (repository *Repository) Update(query string, person *Person, id uint64) er
 		person.Gender,
 		person.Nationality,
 		id,
-	).Scan(&person.UpdatedAt)
+	).Scan(&person.ID, &person.CreatedAt, &person.UpdatedAt)
 
 	if queryErr != nil {
 		return queryErr
@@ -122,6 +117,7 @@ func (repository *Repository) Delete(query string, id uint64) error {
 	_, queryErr := repository.Database.DB.Exec(query, id)
 
 	if queryErr != nil {
+		log.Println("delete error: ", queryErr)
 		return queryErr
 	}
 	return nil

@@ -7,10 +7,33 @@ import (
 	"net/http"
 )
 
-func enrichPerson(person *Person) {
-	person.Age = getAge(person.Name)
-	person.Gender = getGender(person.Name)
-	person.Nationality = getFullCountryName(person.Name)
+func enrichPerson(person *Person) chan struct{} {
+	promise := make(chan struct{})
+
+	counter := make(chan struct{})
+	go func() {
+		person.Age = getAge(person.Name)
+		counter <- struct{}{}
+	}()
+	go func() {
+		person.Gender = getGender(person.Name)
+		counter <- struct{}{}
+	}()
+	go func() {
+		person.Nationality = getFullCountryName(person.Name)
+		counter <- struct{}{}
+	}()
+
+	go func() {
+		for range 3 {
+			<-counter
+		}
+		close(counter)
+		promise <- struct{}{}
+		close(promise)
+	}()
+
+	return promise
 }
 
 func getAge(name string) uint8 {
@@ -18,6 +41,10 @@ func getAge(name string) uint8 {
 	response, requestErr := http.Get(request)
 	if requestErr != nil {
 		log.Println(requestErr)
+	}
+	if response.StatusCode != 200 {
+		log.Println(response.StatusCode)
+		return 0
 	}
 	var age AgeRequest
 	decodeErr := json.NewDecoder(response.Body).Decode(&age)
@@ -32,6 +59,10 @@ func getGender(name string) string {
 	response, requestErr := http.Get(request)
 	if requestErr != nil {
 		log.Println(requestErr)
+	}
+	if response.StatusCode != 200 {
+		log.Println(response.StatusCode)
+		return ""
 	}
 	var gender GenderRequest
 	decodeErr := json.NewDecoder(response.Body).Decode(&gender)

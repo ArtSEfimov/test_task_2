@@ -175,7 +175,8 @@ func (handler *Handler) Create() http.HandlerFunc {
 		person.Surname = request.Surname
 		person.Patronymic = request.Patronymic
 
-		enrichPerson(&person)
+		promise := enrichPerson(&person)
+		<-promise
 
 		params := "VALUES ($1, $2, $3, $4, $5, $6)"
 		returning := "RETURNING id, created_at, updated_at"
@@ -219,7 +220,8 @@ func (handler *Handler) Update() http.HandlerFunc {
 		person.Surname = request.Surname
 		person.Patronymic = request.Patronymic
 
-		enrichPerson(&person)
+		promise := enrichPerson(&person)
+		<-promise
 
 		params := "SET name = $1, surname = $2, patronymic = $3, age = $4, gender = $5, nationality = $6)"
 		selectByID := "WHERE id = $7"

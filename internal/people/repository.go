@@ -126,3 +126,11 @@ func (repository *Repository) Update(query string, person *Person, id uint64) er
 	}
 	return nil
 }
+func (repository *Repository) Delete(query string, id uint64) error {
+	_, queryErr := repository.Database.DB.Exec(query, id)
+
+	if queryErr != nil {
+		return queryErr
+	}
+	return nil
+}

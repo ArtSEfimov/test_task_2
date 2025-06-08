@@ -38,6 +38,7 @@ func NewHandler(router *http.ServeMux, deps *HandlerDeps) {
 	router.HandleFunc("GET /people/{id}", handler.GetByID())
 	router.HandleFunc("POST /people", handler.Create())
 	router.HandleFunc("PUT  /people/{id}", handler.Update())
+	router.HandleFunc("DELETE  /people/{id}", handler.Delete())
 }
 
 func (handler *Handler) listLimit(w http.ResponseWriter, sizeParam string) {
@@ -117,10 +118,10 @@ func (handler *Handler) GetAll() http.HandlerFunc {
 		query := fmt.Sprintf("SELECT * FROM%s\nORDER BY id", dbName)
 
 		var people AllPeopleResponse
-		getErr := handler.repository.Get(query, &people)
+		dbErr := handler.repository.Get(query, &people)
 
-		if getErr != nil {
-			http.Error(w, getErr.Error(), http.StatusInternalServerError)
+		if dbErr != nil {
+			http.Error(w, dbErr.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -142,10 +143,10 @@ func (handler *Handler) GetByID() http.HandlerFunc {
 		query := fmt.Sprintf("SELECT * FROM%s\n%s", dbName, params)
 
 		var person Person
-		getErr := handler.repository.GetByID(query, &person, id)
+		dbErr := handler.repository.GetByID(query, &person, id)
 
-		if getErr != nil {
-			http.Error(w, getErr.Error(), http.StatusInternalServerError)
+		if dbErr != nil {
+			http.Error(w, dbErr.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -181,9 +182,9 @@ func (handler *Handler) Create() http.HandlerFunc {
 		dbName := fmt.Sprintf(" %s", handler.config.Database.Name)
 		query := fmt.Sprintf("INSERT INTO%s %s %s", dbName, params, returning)
 
-		getErr := handler.repository.Create(query, &person)
-		if getErr != nil {
-			http.Error(w, getErr.Error(), http.StatusInternalServerError)
+		dbErr := handler.repository.Create(query, &person)
+		if dbErr != nil {
+			http.Error(w, dbErr.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -226,12 +227,36 @@ func (handler *Handler) Update() http.HandlerFunc {
 		dbName := fmt.Sprintf(" %s", handler.config.Database.Name)
 		query := fmt.Sprintf("UPDATE%s\n%s\n%s\n%s", dbName, params, selectByID, returning)
 
-		getErr := handler.repository.Update(query, &person, id)
-		if getErr != nil {
-			http.Error(w, getErr.Error(), http.StatusInternalServerError)
+		dbErr := handler.repository.Update(query, &person, id)
+		if dbErr != nil {
+			http.Error(w, dbErr.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		response.Json(w, &person, http.StatusCreated)
+		response.Json(w, &person, http.StatusOK)
+	}
+}
+
+func (handler *Handler) Delete() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idString := r.PathValue("id")
+		id, parseErr := strconv.ParseUint(idString, 10, 64)
+		if parseErr != nil {
+			http.Error(w, parseErr.Error(), http.StatusBadRequest)
+		}
+
+		params := "WHERE id = $1"
+		dbName := fmt.Sprintf(" %s", handler.config.Database.Name)
+		query := fmt.Sprintf("DELETE FROM%s\n%s", dbName, params)
+
+		dbErr := handler.repository.Delete(query, id)
+
+		if dbErr != nil {
+			http.Error(w, dbErr.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		response.Json(w, nil, http.StatusNoContent)
+
 	}
 }

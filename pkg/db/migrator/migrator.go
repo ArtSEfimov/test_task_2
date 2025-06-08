@@ -53,6 +53,19 @@ func main() {
             gender TEXT NOT NULL,
             nationality TEXT NOT NULL
         )`, table),
+		`CREATE OR REPLACE FUNCTION update_updated_at()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        NEW.updated_at = NOW();
+        RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;`,
+		fmt.Sprintf(`
+    CREATE TRIGGER set_updated_at
+    BEFORE UPDATE ON %s
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at();
+    `, table),
 	}
 
 	for _, q := range queries {

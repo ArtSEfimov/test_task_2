@@ -73,7 +73,7 @@ func (repository *Repository) GetByID(query string, person *Person, id uint64) e
 
 	if scanErr != nil {
 		if errors.Is(scanErr, sql.ErrNoRows) {
-			return fmt.Errorf("record with id %d not found", id)
+			return NewErrorNotFound(fmt.Sprintf("record with id %d not found", id))
 		}
 		return scanErr
 	}
@@ -111,7 +111,7 @@ func (repository *Repository) Update(query string, person *Person, id uint64) er
 
 	if queryErr != nil {
 		if errors.Is(queryErr, sql.ErrNoRows) {
-			return fmt.Errorf("record with id %d not found", id)
+			return NewErrorNotFound(fmt.Sprintf("record with id %d not found", id))
 		}
 		return queryErr
 	}
@@ -121,11 +121,25 @@ func (repository *Repository) Update(query string, person *Person, id uint64) er
 func (repository *Repository) Delete(query string, id uint64) error {
 	result, queryErr := repository.Database.DB.Exec(query, id)
 	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
-		return fmt.Errorf("record with id %d not found", id)
+		return NewErrorNotFound(fmt.Sprintf("record with id %d not found", id))
 	}
 
 	if queryErr != nil {
 		return queryErr
 	}
 	return nil
+}
+
+type ErrorNotFound struct {
+	Message string
+}
+
+func NewErrorNotFound(message string) *ErrorNotFound {
+	return &ErrorNotFound{
+		Message: message,
+	}
+}
+
+func (err *ErrorNotFound) Error() string {
+	return err.Message
 }

@@ -3,6 +3,7 @@ package people
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"go_test_task_2/config"
 	"go_test_task_2/pkg/response"
@@ -192,6 +193,11 @@ func (handler *Handler) GetByID() http.HandlerFunc {
 
 		if dbErr != nil {
 			handler.config.DebugLogger.Printf("Error executing query: %v", dbErr)
+			var errorNotFound *ErrorNotFound
+			if errors.As(dbErr, &errorNotFound) {
+				http.Error(w, dbErr.Error(), http.StatusBadRequest)
+				return
+			}
 			http.Error(w, dbErr.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -230,8 +236,9 @@ func (handler *Handler) Create() http.HandlerFunc {
 		person.Patronymic = request.Patronymic
 
 		handler.config.InfoLogger.Println("Enriching person data")
+
 		promise := enrichPerson(&person)
-		<-promise
+
 		handler.config.InfoLogger.Println("Person data enriched successfully")
 
 		params := "VALUES ($1, $2, $3, $4, $5, $6)"
@@ -240,6 +247,8 @@ func (handler *Handler) Create() http.HandlerFunc {
 		query := fmt.Sprintf("INSERT INTO%s (name, surname, patronymic, age, gender, nationality) %s %s", dbName, params, returning)
 
 		handler.config.InfoLogger.Printf("Executing query: %s", query)
+
+		<-promise
 
 		dbErr := handler.repository.Create(query, &person)
 		if dbErr != nil {
@@ -293,7 +302,6 @@ func (handler *Handler) Update() http.HandlerFunc {
 		handler.config.InfoLogger.Println("Enriching person data")
 
 		promise := enrichPerson(&person)
-		<-promise
 
 		handler.config.InfoLogger.Println("Person data enriched successfully")
 
@@ -305,9 +313,16 @@ func (handler *Handler) Update() http.HandlerFunc {
 
 		handler.config.InfoLogger.Printf("Executing query: %s", query)
 
+		<-promise
+
 		dbErr := handler.repository.Update(query, &person, id)
 		if dbErr != nil {
 			handler.config.DebugLogger.Printf("Error executing query: %v", dbErr)
+			var errorNotFound *ErrorNotFound
+			if errors.As(dbErr, &errorNotFound) {
+				http.Error(w, dbErr.Error(), http.StatusBadRequest)
+				return
+			}
 			http.Error(w, dbErr.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -344,6 +359,11 @@ func (handler *Handler) Delete() http.HandlerFunc {
 
 		if dbErr != nil {
 			handler.config.DebugLogger.Printf("Error executing query: %v", dbErr)
+			var errorNotFound *ErrorNotFound
+			if errors.As(dbErr, &errorNotFound) {
+				http.Error(w, dbErr.Error(), http.StatusBadRequest)
+				return
+			}
 			http.Error(w, dbErr.Error(), http.StatusInternalServerError)
 			return
 		}

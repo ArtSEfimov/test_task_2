@@ -29,6 +29,10 @@ func main() {
 
 	people.NewHandler(peopleMux, people.NewHandlerDeps(conf, peopleRepository))
 
+	fs := http.FileServer(http.Dir("."))
+	peopleMux.Handle("/swagger.html", fs)
+	peopleMux.Handle("/openapi.yaml", fs)
+
 	conf.InfoLogger.Printf("Starting server on port %s...", port)
 	serverStartErr := peopleServer.ListenAndServe()
 	if serverStartErr != nil {
